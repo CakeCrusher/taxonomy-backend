@@ -1,6 +1,7 @@
 # main.py
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request
+from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
@@ -10,15 +11,22 @@ from taxonomy_synthesis.tree.node_operator import NodeOperator
 from taxonomy_synthesis.generator.taxonomy_generator import TaxonomyGenerator
 from taxonomy_synthesis.classifiers.gpt_classifier import GPTClassifier
 from fastapi.middleware.cors import CORSMiddleware
-
+from neo4j import GraphDatabase
 from openai import OpenAI
+from dotenv import load_dotenv
 
+import os
+
+from db.session_handler import SessionModel, create_session
+
+load_dotenv()
 
 # Define the request model for generate_classes
 class GenerateClassesRequest(BaseModel):
     items: List[Item]  # items in current node
     category: Category  # category of current node
     num_categories: int
+    generation_method: str
     api_key: str = Field(..., description="OpenAI API Key")
 
 
@@ -39,7 +47,19 @@ class ClassifyItemsResponse(BaseModel):
     classified_items: List[ClassifiedItem]
 
 
-app = FastAPI(title="Taxonomy Synthesis API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    uri = os.getenv("NEO4J_URI")
+    username = os.getenv("NEO4J_USER")
+    password = os.getenv("NEO4J_PASSWORD")
+    if not uri or not username or not password:
+        raise Exception("Missing Neo4j credentials")
+    app.state.neo4j_driver = GraphDatabase.driver(uri, auth=(username, password))
+    yield
+    app.state.neo4j_driver.close()
+
+
+app = FastAPI(title="Taxonomy Synthesis API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,9 +70,23 @@ app.add_middleware(
 )
 
 
+def get_db(request: Request):
+    return request.app.state.neo4j_driver
+
+
 # Helper function to initialize OpenAI client
 def get_openai_client(api_key: str):
     return OpenAI(api_key=api_key)
+
+
+@app.post("/initialize_session", response_model=SessionModel)
+def initialize_session(request: Request):
+    try:
+        driver = get_db(request)
+        session_model = create_session(driver)
+        return session_model
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Helper function to create a TreeNode from a Category
@@ -82,7 +116,7 @@ def generate_classes(request: GenerateClassesRequest):
         generator = TaxonomyGenerator(
             client=client,
             max_categories=request.num_categories,
-            generation_method="Generate subcategories based on the parent category.",
+            generation_method=request.generation_method,
         )
 
         # Initialize the operator without a classifier (not needed here)
