@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 import os
 
+from db.category_handler import CategoryModel, create_category
 from db.item_handler import ItemModel, create_item, delete_item, update_item
 from db.session_handler import SessionModel, create_session
 
@@ -207,6 +208,46 @@ def delete_items_endpoint(request: Request, delete_req: DeleteItemsRequest):
         item_ids = [item.id for item in delete_req.items]
         delete_item(driver=driver, session_id=delete_req.session_id, item_ids=item_ids)
         return DeleteItemsResponse(detail="Items deleted successfully.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for create_category
+class CreateCategoryRequest(BaseModel):
+    session_id: str
+    category: Category
+    is_child_of: Optional[str] = None  # CATEGORY ID
+    is_parent_of: Optional[str] = None  # CATEGORY ID
+
+
+@app.post("/create_category", response_model=CategoryModel)
+def create_category_endpoint(request: Request, category_req: CreateCategoryRequest):
+    """
+    Endpoint to create a new category within a session.
+
+    - **session_id**: ID of the session where the category will be created.
+    - **name**: Name of the new category.
+    - **description**: Description of the new category.
+    - **is_child_of**: (Optional) ID of the parent category to establish an IS_CHILD_OF relationship.
+    - **is_parent_of**: (Optional) ID of the child category to establish an IS_PARENT_TO relationship.
+
+    Returns the created category with its unique ID.
+    """
+    try:
+        driver = get_db(request)
+        created_category = create_category(
+            driver=driver,
+            name=category_req.category.name,
+            description=category_req.category.description,
+            session_id=category_req.session_id,
+            is_child_of=category_req.is_child_of,
+            is_parent_of=category_req.is_parent_of,
+        )
+        return CategoryModel(
+            id=created_category.id,
+            name=created_category.name,
+            description=created_category.description,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
