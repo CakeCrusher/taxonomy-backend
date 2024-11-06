@@ -80,7 +80,7 @@ def _create_category_tx(
 
 def delete_category(driver: Driver, session_id: str, category_id: str) -> None:
     with driver.session() as session:
-        session.write_transaction(_delete_category_tx, session_id, category_id)
+        session.execute_write(_delete_category_tx, session_id, category_id)
 
 
 def _delete_category_tx(tx, session_id: str, category_id: str):

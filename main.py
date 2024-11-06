@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 import os
 
-from db.category_handler import CategoryModel, create_category
+from db.category_handler import CategoryModel, create_category, delete_category
 from db.item_handler import ItemModel, create_item, delete_item, update_item
 from db.session_handler import SessionModel, create_session
 
@@ -248,6 +248,39 @@ def create_category_endpoint(request: Request, category_req: CreateCategoryReque
             name=created_category.name,
             description=created_category.description,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for delete_category
+class DeleteCategoryRequest(BaseModel):
+    session_id: str
+    category_id: str
+
+
+# Define the response model for delete_category
+class DeleteCategoryResponse(BaseModel):
+    detail: str
+
+
+@app.post("/delete_category", response_model=DeleteCategoryResponse)
+def delete_category_endpoint(request: Request, delete_req: DeleteCategoryRequest):
+    """
+    Endpoint to delete a category within a session.
+
+    - **session_id**: ID of the session containing the category.
+    - **category_id**: ID of the category to be deleted.
+
+    Returns a confirmation message upon successful deletion.
+    """
+    try:
+        driver = get_db(request)
+        delete_category(
+            driver=driver,
+            session_id=delete_req.session_id,
+            category_id=delete_req.category_id,
+        )
+        return DeleteCategoryResponse(detail="Category deleted successfully.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
