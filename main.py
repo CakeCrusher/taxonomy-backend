@@ -205,9 +205,7 @@ def delete_items_endpoint(request: Request, delete_req: DeleteItemsRequest):
     try:
         driver = get_db(request)
         item_ids = [item.id for item in delete_req.items]
-        delete_item(
-            driver=driver, session_id=delete_req.session_id, item_ids=item_ids
-        )
+        delete_item(driver=driver, session_id=delete_req.session_id, item_ids=item_ids)
         return DeleteItemsResponse(detail="Items deleted successfully.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

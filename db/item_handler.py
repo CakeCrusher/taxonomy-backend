@@ -33,7 +33,9 @@ def create_item(
         ItemModel: The created item with a unique `id_`.
     """
     with driver.session() as session:
-        res = session.execute_write(_create_item_tx, session_id, item, is_contained_inside)
+        res = session.execute_write(
+            _create_item_tx, session_id, item, is_contained_inside
+        )
 
     return res
 
@@ -113,7 +115,9 @@ def update_item(
         ItemModel: The updated or newly created item with a unique `id_`.
     """
     with driver.session() as session:
-        res = session.execute_write(_update_item_tx, session_id, item, is_contained_inside)
+        res = session.execute_write(
+            _update_item_tx, session_id, item, is_contained_inside
+        )
 
     return res
 
@@ -179,7 +183,9 @@ def _update_item_tx(
                     remove_contains_query,
                     id_=id_,
                 )
-                print(f"CONTAINS relationship removed from category: {current_category}")
+                print(
+                    f"CONTAINS relationship removed from category: {current_category}"
+                )
 
             if is_contained_inside:
                 # Create new CONTAINS relationship
@@ -192,7 +198,9 @@ def _update_item_tx(
                     category_id=is_contained_inside,
                     id_=id_,
                 )
-                print(f"CONTAINS relationship created with category: {is_contained_inside}")
+                print(
+                    f"CONTAINS relationship created with category: {is_contained_inside}"
+                )
 
         # Return the updated ItemModel
         updated_item = ItemModel(
@@ -203,16 +211,14 @@ def _update_item_tx(
         return updated_item
     else:
         # Item does not exist; create it
-        print(f"Item with id '{item.id}' not found in session '{session_id}'. Creating new item.")
+        print(
+            f"Item with id '{item.id}' not found in session '{session_id}'. Creating new item."
+        )
         return _create_item_tx(tx, session_id, item, is_contained_inside)
 
 
 # Delete Item Function
-def delete_item(
-    driver: Driver,
-    session_id: str,
-    item_ids: List[str]
-) -> None:
+def delete_item(driver: Driver, session_id: str, item_ids: List[str]) -> None:
     """
     Deletes items within the specified session based on their IDs.
 
@@ -225,11 +231,7 @@ def delete_item(
         None
     """
     with driver.session() as session:
-        session.execute_write(
-            _delete_item_tx,
-            session_id,
-            item_ids
-        )
+        session.execute_write(_delete_item_tx, session_id, item_ids)
 
 
 def _delete_item_tx(tx, session_id: str, item_ids: List[str]):
@@ -249,9 +251,5 @@ def _delete_item_tx(tx, session_id: str, item_ids: List[str]):
     WHERE i.id IN $item_ids
     DETACH DELETE i
     """
-    tx.run(
-        delete_items_query,
-        session_id=session_id,
-        item_ids=item_ids
-    )
+    tx.run(delete_items_query, session_id=session_id, item_ids=item_ids)
     print(f"Items Deleted: {item_ids}")
