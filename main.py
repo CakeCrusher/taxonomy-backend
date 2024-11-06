@@ -17,7 +17,12 @@ from dotenv import load_dotenv
 
 import os
 
-from db.category_handler import CategoryModel, create_category, delete_category
+from db.category_handler import (
+    CategoryModel,
+    create_category,
+    delete_category,
+    update_category,
+)
 from db.item_handler import ItemModel, create_item, delete_item, update_item
 from db.session_handler import SessionModel, create_session
 
@@ -248,6 +253,59 @@ def create_category_endpoint(request: Request, category_req: CreateCategoryReque
             name=created_category.name,
             description=created_category.description,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for update_category
+class UpdateCategoryRequest(BaseModel):
+    session_id: str
+    category_id: str
+    category: Category
+    is_child_of: Optional[str] = None  # CATEGORY ID
+    is_parent_of: Optional[str] = None  # CATEGORY ID
+
+
+# Define the response model for update_category
+class UpdateCategoryResponse(BaseModel):
+    id: str
+    name: Optional[str]
+    description: Optional[str]
+
+
+@app.post("/update_category", response_model=UpdateCategoryResponse)
+def update_category_endpoint(request: Request, update_req: UpdateCategoryRequest):
+    """
+    Endpoint to update an existing category within a session.
+
+    - **session_id**: ID of the session containing the category.
+    - **category_id**: ID of the category to be updated.
+    - **name**: (Optional) New name for the category.
+    - **description**: (Optional) New description for the category.
+    - **is_child_of**: (Optional) ID of the new parent category to establish `IS_CHILD_OF` relationship.
+    - **is_parent_of**: (Optional) ID of the new child category to establish `IS_PARENT_TO` relationship.
+
+    Returns the updated category details.
+    """
+    try:
+        driver = get_db(request)
+        updated_category = update_category(
+            driver=driver,
+            session_id=update_req.session_id,
+            category_id=update_req.category_id,
+            name=update_req.category.name,
+            description=update_req.category.description,
+            is_child_of=update_req.is_child_of,
+            is_parent_of=update_req.is_parent_of,
+        )
+        return UpdateCategoryResponse(
+            id=updated_category.id,
+            name=updated_category.name,
+            description=updated_category.description,
+        )
+    except ValueError as ve:
+        # Raised when the category is not found
+        raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
