@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 import os
 
+from db.item_handler import ItemModel, create_item
 from db.session_handler import SessionModel, create_session
 
 load_dotenv()
@@ -86,6 +87,49 @@ def initialize_session(request: Request):
         driver = get_db(request)
         session_model = create_session(driver)
         return session_model
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for create_items
+class CreateItemsRequest(BaseModel):
+    session_id: str
+    items: List[Item]  # List of TSItem objects with arbitrary fields
+    is_contained_inside: Optional[str] = None  # Optional CATEGORY ID
+
+
+# Define the response model for create_items
+class CreateItemsResponse(BaseModel):
+    items: List[ItemModel]  # List of created ItemModel objects
+
+
+@app.post("/create_items", response_model=CreateItemsResponse)
+def create_items_endpoint(request: Request, create_req: CreateItemsRequest):
+    """
+    Endpoint to create multiple items within a session.
+
+    - **session_id**: ID of the session.
+    - **items**: List of items to be created. Each item must have an `id` and can have arbitrary additional fields.
+    - **is_contained_inside**: Optional CATEGORY ID to establish a CONTAINS relationship.
+
+    Returns the list of created items with their unique `_id`s.
+    """
+    try:
+        driver = get_db(request)
+        created_items: List[ItemModel] = []
+
+        for ts_item in create_req.items:
+            # Create the item and receive the ItemModel with _id
+            item_model = create_item(
+                driver=driver,
+                session_id=create_req.session_id,
+                item=ts_item,
+                is_contained_inside=create_req.is_contained_inside,
+            )
+            created_items.append(item_model)
+
+        return CreateItemsResponse(items=created_items)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
