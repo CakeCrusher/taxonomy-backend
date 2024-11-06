@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 import os
 
-from db.item_handler import ItemModel, create_item
+from db.item_handler import ItemModel, create_item, delete_item, update_item
 from db.session_handler import SessionModel, create_session
 
 load_dotenv()
@@ -130,6 +130,85 @@ def create_items_endpoint(request: Request, create_req: CreateItemsRequest):
 
         return CreateItemsResponse(items=created_items)
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for update_items
+class UpdateItemsRequest(BaseModel):
+    session_id: str
+    items: List[Item]  # List of TSItem objects with arbitrary fields
+    is_contained_inside: Optional[str] = None  # Optional CATEGORY ID
+
+
+# Define the response model for update_items
+class UpdateItemsResponse(BaseModel):
+    items: List[ItemModel]  # List of updated ItemModel objects
+
+
+@app.post("/update_items", response_model=UpdateItemsResponse)
+def update_items_endpoint(request: Request, update_req: UpdateItemsRequest):
+    """
+    Endpoint to update multiple items within a session.
+
+    - **session_id**: ID of the session.
+    - **items**: List of items to be updated. Each item must have an `id` and can have arbitrary additional fields.
+    - **is_contained_inside**: Optional CATEGORY ID to update the CONTAINS relationship.
+
+    Returns the list of updated or newly created items with their unique `id_`.
+    """
+    try:
+        driver = get_db(request)
+        updated_items = []
+
+        for ts_item in update_req.items:
+            # Update the item and receive the updated or created ItemModel with id_
+            updated_item = update_item(
+                driver=driver,
+                session_id=update_req.session_id,
+                item=ts_item,
+                is_contained_inside=update_req.is_contained_inside,
+            )
+            updated_items.append(updated_item)
+
+        return UpdateItemsResponse(items=updated_items)
+
+    except ValueError as ve:
+        # This is raised if an item to update was not found and couldn't be created
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        # General exception catch-all
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for delete_items
+class DeleteItemsRequest(BaseModel):
+    session_id: str
+    items: List[Item]  # List of item IDs to be deleted
+
+
+# Define the response model for delete_items
+class DeleteItemsResponse(BaseModel):
+    detail: str
+
+
+@app.post("/delete_items", response_model=DeleteItemsResponse)
+def delete_items_endpoint(request: Request, delete_req: DeleteItemsRequest):
+    """
+    Endpoint to delete multiple items within a session.
+
+    - **session_id**: ID of the session.
+    - **items**: List of item IDs to be deleted.
+
+    Returns a confirmation message upon successful deletion.
+    """
+    try:
+        driver = get_db(request)
+        item_ids = [item.id for item in delete_req.items]
+        delete_item(
+            driver=driver, session_id=delete_req.session_id, item_ids=item_ids
+        )
+        return DeleteItemsResponse(detail="Items deleted successfully.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
