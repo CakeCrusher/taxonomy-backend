@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Request
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -20,6 +20,7 @@ import os
 from db.session_handler import SessionModel, create_session
 
 load_dotenv()
+
 
 # Define the request model for generate_classes
 class GenerateClassesRequest(BaseModel):

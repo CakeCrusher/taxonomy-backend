@@ -1,7 +1,6 @@
 # db/category_handler.py
 
 from neo4j import Driver
-from pydantic import BaseModel
 from typing import Optional
 from taxonomy_synthesis.models import Category as TSCategory
 import uuid
@@ -15,6 +14,7 @@ def create_category(
     driver: Driver,
     name: str,
     description: str,
+    session_id: str,
     is_child_of: Optional[str] = None,
     is_parent_of: Optional[str] = None,
 ) -> CategoryModel:
@@ -25,6 +25,7 @@ def create_category(
             category_id,
             name,
             description,
+            session_id,
             is_child_of,
             is_parent_of,
         )
@@ -36,17 +37,21 @@ def _create_category_tx(
     category_id: str,
     name: str,
     description: str,
+    session_id: str,
     is_child_of: Optional[str],
     is_parent_of: Optional[str],
 ):
     # Create the CATEGORY node
     tx.run(
         """
+        MATCH (s:SESSION {id: $session_id})
         CREATE (c:CATEGORY {id: $id, name: $name, description: $description})
+        CREATE (s)-[:HAS]->(c)
         """,
         id=category_id,
         name=name,
         description=description,
+        session_id=session_id,
     )
 
     # Create IS_CHILD_OF and IS_PARENT_TO relationships if provided
@@ -71,3 +76,20 @@ def _create_category_tx(
             parent_id=category_id,
             child_id=is_parent_of,
         )
+
+
+def delete_category(driver: Driver, session_id: str, category_id: str) -> None:
+    with driver.session() as session:
+        session.write_transaction(_delete_category_tx, session_id, category_id)
+
+
+def _delete_category_tx(tx, session_id: str, category_id: str):
+    # Ensure the category is associated with the session
+    tx.run(
+        """
+        MATCH (s:SESSION {id: $session_id})-[:HAS]->(c:CATEGORY {id: $category_id})
+        DETACH DELETE c
+        """,
+        session_id=session_id,
+        category_id=category_id,
+    )

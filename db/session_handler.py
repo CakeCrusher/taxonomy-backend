@@ -19,7 +19,10 @@ def create_session(driver: Driver) -> SessionModel:
 
     # Create a root category with template inputs
     root_category = create_category(
-        driver, name="Root Category", description="This is the root category"
+        driver,
+        name="Root Category",
+        description="This is the root category",
+        session_id=session_id,
     )
 
     # Create HAS_ROOT relationship between the session and root category
