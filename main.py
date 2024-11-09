@@ -24,7 +24,7 @@ from db.category_handler import (
     update_category,
 )
 from db.item_handler import ItemModel, create_item, delete_item, update_item
-from db.session_handler import SessionModel, create_session
+from db.session_handler import SessionModel, create_session, get_session_data
 
 load_dotenv()
 
@@ -85,6 +85,50 @@ def get_db(request: Request):
 # Helper function to initialize OpenAI client
 def get_openai_client(api_key: str):
     return OpenAI(api_key=api_key)
+
+
+class GetSessionRequest(BaseModel):
+    session_id: str
+
+
+class PositionModel(BaseModel):
+    x: int
+    y: int
+
+
+class TreeNodeModel(BaseModel):
+    value: CategoryModel
+    children: List["TreeNodeModel"] = []
+    items: List[Item] = []
+    position: PositionModel
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+TreeNodeModel.model_rebuild()
+
+
+class SessionResponse(BaseModel):
+    tree: List[TreeNodeModel]
+    orphan_items: List[Item]
+
+
+@app.get("/session/{session_id}", response_model=SessionResponse)
+def get_session_endpoint(request: Request, session_id: str):
+    """
+    Endpoint to retrieve all categories and items within a session.
+
+    - **session_id**: ID of the session.
+
+    Returns the session data structured for the frontend.
+    """
+    try:
+        driver = get_db(request)
+        session_data = get_session_data(driver, session_id)
+        return session_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/initialize_session", response_model=SessionModel)
@@ -162,6 +206,19 @@ def update_items_endpoint(request: Request, update_req: UpdateItemsRequest):
     - **is_contained_inside**: Optional CATEGORY ID to update the CONTAINS relationship.
 
     Returns the list of updated or newly created items with their unique `id_`.
+
+    Example:
+    ```json
+    {
+    "session_id": "5d4fe9e9edcd48429228534be2ff89dd",
+    "items": [
+        {
+        "id": "1",
+        "additionalProp1": {"a": 1}
+        }
+    ]
+    }
+    ```
     """
     try:
         driver = get_db(request)
