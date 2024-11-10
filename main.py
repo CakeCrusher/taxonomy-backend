@@ -31,11 +31,11 @@ load_dotenv()
 
 # Define the request model for generate_classes
 class GenerateClassesRequest(BaseModel):
+    api_key: str = Field(..., description="OpenAI API Key")
     items: List[Item]  # items in current node
     category: Category  # category of current node
-    num_categories: int
     generation_method: str
-    api_key: str = Field(..., description="OpenAI API Key")
+    num_categories: Optional[int]
 
 
 # Define the response model for generate_classes
@@ -418,6 +418,9 @@ def create_tree_node(
 @app.post("/generate_classes", response_model=GenerateClassesResponse)
 def generate_classes(request: GenerateClassesRequest):
     try:
+        if request.num_categories == 0:
+            request.num_categories = None
+
         # Initialize OpenAI client
         client = get_openai_client(request.api_key)
 
