@@ -151,8 +151,9 @@ def _update_item_tx(
 
     # raise error
     if not result:
-        raise ValueError(f"Item with id '{item.id}' not found in session '{session_id}'.")
-
+        raise ValueError(
+            f"Item with id '{item.id}' not found in session '{session_id}'."
+        )
 
     # Item exists; proceed to update
     id_ = result["id_"]
@@ -187,9 +188,7 @@ def _update_item_tx(
                 remove_contains_query,
                 id_=id_,
             )
-            print(
-                f"CONTAINS relationship removed from category: {current_category}"
-            )
+            print(f"CONTAINS relationship removed from category: {current_category}")
 
         if is_contained_inside:
             # Create new CONTAINS relationship
@@ -202,9 +201,7 @@ def _update_item_tx(
                 category_id=is_contained_inside,
                 id_=id_,
             )
-            print(
-                f"CONTAINS relationship created with category: {is_contained_inside}"
-            )
+            print(f"CONTAINS relationship created with category: {is_contained_inside}")
 
     # Return the updated ItemModel
     updated_item = ItemModel(
@@ -276,10 +273,7 @@ def update_category_items(
     """
     with driver.session() as session:
         updated_items = session.execute_write(
-            _update_category_items_tx,
-            session_id,
-            category_id,
-            items
+            _update_category_items_tx, session_id, category_id, items
         )
     return updated_items
 
@@ -307,9 +301,7 @@ def _update_category_items_tx(
     RETURN i.id AS id
     """
     existing_items_result = tx.run(
-        existing_items_query,
-        session_id=session_id,
-        category_id=category_id
+        existing_items_query, session_id=session_id, category_id=category_id
     )
     existing_item_ids = set(record["id"] for record in existing_items_result)
 
