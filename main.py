@@ -23,7 +23,7 @@ from db.category_handler import (
     delete_category,
     update_category,
 )
-from db.item_handler import ItemModel, create_item, delete_item, update_item
+from db.item_handler import ItemModel, create_item, delete_item, update_category_items, update_item
 from db.session_handler import SessionModel, create_session, get_session_data
 
 load_dotenv()
@@ -205,18 +205,19 @@ def update_items_endpoint(request: Request, update_req: UpdateItemsRequest):
     - **items**: List of items to be updated. Each item must have an `id` and can have arbitrary additional fields.
     - **is_contained_inside**: Optional CATEGORY ID to update the CONTAINS relationship.
 
-    Returns the list of updated or newly created items with their unique `id_`.
+    Returns the list of updated items with their unique `id_`.
 
     Example:
     ```json
     {
-    "session_id": "5d4fe9e9edcd48429228534be2ff89dd",
-    "items": [
-        {
-        "id": "1",
-        "additionalProp1": {"a": 1}
-        }
-    ]
+        "session_id": "5d4fe9e9edcd48429228534be2ff89dd",
+        "items": [
+            {
+                "id": "1",
+                "additionalProp1": {"a": 1}
+            }
+        ],
+        "is_contained_inside": null
     }
     ```
     """
@@ -225,14 +226,17 @@ def update_items_endpoint(request: Request, update_req: UpdateItemsRequest):
         updated_items = []
 
         for ts_item in update_req.items:
-            # Update the item and receive the updated or created ItemModel with id_
-            updated_item = update_item(
-                driver=driver,
-                session_id=update_req.session_id,
-                item=ts_item,
-                is_contained_inside=update_req.is_contained_inside,
-            )
-            updated_items.append(updated_item)
+            try:
+                # Update the item and receive the updated ItemModel with id_
+                updated_item = update_item(
+                    driver=driver,
+                    session_id=update_req.session_id,
+                    item=ts_item,
+                    is_contained_inside=update_req.is_contained_inside,
+                )
+                updated_items.append(updated_item)
+            except ValueError as ve:
+                print("Item not found: ", ve)
 
         return UpdateItemsResponse(items=updated_items)
 
@@ -270,6 +274,48 @@ def delete_items_endpoint(request: Request, delete_req: DeleteItemsRequest):
         item_ids = [item.id for item in delete_req.items]
         delete_item(driver=driver, session_id=delete_req.session_id, item_ids=item_ids)
         return DeleteItemsResponse(detail="Items deleted successfully.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Define the request model for update_category_items
+class UpdateCategoryItemsRequest(BaseModel):
+    session_id: str
+    category_id: str
+    items: List[Item]  # List of TSItem objects to update in the category
+
+
+# Define the response model
+class UpdateCategoryItemsResponse(BaseModel):
+    items: List[ItemModel]  # List of updated or created ItemModel objects
+
+
+@app.post("/update_category_items", response_model=UpdateCategoryItemsResponse)
+def update_category_items_endpoint(
+    request: Request, update_req: UpdateCategoryItemsRequest
+):
+    """
+    Endpoint to update the items inside a category.
+
+    - Compares the items according to their `id`.
+    - If the database is missing items, it will create them.
+    - If the database has surplus items, it deletes them.
+    - The rest of the items will be updated.
+
+    Returns the list of updated or created items.
+    """
+    try:
+        driver = get_db(request)
+        updated_items = update_category_items(
+            driver=driver,
+            session_id=update_req.session_id,
+            category_id=update_req.category_id,
+            items=update_req.items,
+        )
+        return UpdateCategoryItemsResponse(items=updated_items)
+    except ValueError as ve:
+        # Handle cases where items to update do not exist
+        raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
