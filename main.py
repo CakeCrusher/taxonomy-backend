@@ -23,7 +23,13 @@ from db.category_handler import (
     delete_category,
     update_category,
 )
-from db.item_handler import ItemModel, create_item, delete_item, update_category_items, update_item
+from db.item_handler import (
+    ItemModel,
+    create_item,
+    delete_item,
+    update_category_items,
+    update_item,
+)
 from db.session_handler import SessionModel, create_session, get_session_data
 
 load_dotenv()
@@ -463,6 +469,10 @@ def create_tree_node(
 
 @app.post("/generate_classes", response_model=GenerateClassesResponse)
 def generate_classes(request: GenerateClassesRequest):
+    env_key = os.getenv("OPENAI_API_KEY")
+    if env_key is not None:
+        request.api_key = env_key
+
     try:
         if request.num_categories == 0:
             request.num_categories = None
@@ -494,6 +504,10 @@ def generate_classes(request: GenerateClassesRequest):
 
 @app.post("/classify_items", response_model=ClassifyItemsResponse)
 def classify_items(request: ClassifyItemsRequest):
+    env_key = os.getenv("OPENAI_API_KEY")
+    if env_key is not None:
+        request.api_key = env_key
+
     try:
         # Initialize OpenAI client
         client = get_openai_client(request.api_key)
