@@ -55,6 +55,21 @@ def _create_item_tx(
     Returns:
         ItemModel: The created item with a unique `id_`.
     """
+    # Check if the item already exists
+    find_item_query = """
+    MATCH (s:SESSION {id: $session_id})-[:HAS]->(i:ITEM {id: $id})
+    RETURN i
+    """
+    result = tx.run(
+        find_item_query,
+        session_id=session_id,
+        id=item.id,
+    ).single()
+
+    if result:
+        # Item exists; update it instead
+        return _update_item_tx(tx, session_id, item, is_contained_inside)
+
     # Generate a unique id_ (UUID) for the item
     id_ = str(uuid.uuid4())
 
@@ -157,6 +172,7 @@ def _update_item_tx(
 
     # Item exists; proceed to update
     id_ = result["id_"]
+    id = item.id
     current_category = result["current_category"]
 
     # Serialize new properties
@@ -171,7 +187,7 @@ def _update_item_tx(
     tx.run(
         update_properties_query,
         session_id=session_id,
-        id=item.id,
+        id=id,
         properties=new_properties_json,
     )
     print(f"Item Updated: {item.id}")

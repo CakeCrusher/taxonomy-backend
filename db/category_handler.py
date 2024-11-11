@@ -198,115 +198,115 @@ def _update_category_tx(
         )
         print(f"Category Updated: {category_id}")
 
-    # Update IS_CHILD_OF relationship if provided
-    if is_child_of:
-        # Remove existing IS_CHILD_OF and IS_PARENT_TO relationships
-        remove_child_rel_query = """
-        MATCH (c:CATEGORY {id: $category_id})-[r:IS_CHILD_OF]->()
-        DELETE r
-        """
-        remove_parent_rel_query = """
-        MATCH ()-[r:IS_PARENT_TO]->(c:CATEGORY {id: $category_id})
-        DELETE r
-        """
-        tx.run(
-            remove_child_rel_query,
-            category_id=category_id,
-        )
-        tx.run(
-            remove_parent_rel_query,
-            category_id=category_id,
-        )
-        # Create new IS_CHILD_OF and IS_PARENT_TO relationships
-        add_child_rel_query = """
-        MATCH (parent:CATEGORY {id: $parent_id}), (child:CATEGORY {id: $child_id})
-        CREATE (child)-[:IS_CHILD_OF]->(parent)
-        CREATE (parent)-[:IS_PARENT_TO]->(child)
-        """
-        tx.run(
-            add_child_rel_query,
-            parent_id=is_child_of,
-            child_id=category_id,
-        )
-        print(
-            f"IS_CHILD_OF relationship updated: {category_id} is now child of {is_child_of}"
-        )
-    else:
-        # if is_child_of is not provided remove exising IS_CHILD_OF and IS_PARENT_TO relationships
-        remove_child_rel_query = """
-        MATCH (c:CATEGORY {id: $category_id})-[r:IS_CHILD_OF]->()
-        DELETE r
-        """
-        remove_parent_rel_query = """
-        MATCH ()-[r:IS_PARENT_TO]->(c:CATEGORY {id: $category_id})
-        DELETE r
-        """
-        tx.run(
-            remove_child_rel_query,
-            category_id=category_id,
-        )
-        tx.run(
-            remove_parent_rel_query,
-            category_id=category_id,
-        )
-        print(
-            f"IS_CHILD_OF relationship removed: {category_id} is no longer child of any category"
-        )
+    # # Update IS_CHILD_OF relationship if provided
+    # if is_child_of:
+    #     # Remove existing IS_CHILD_OF and IS_PARENT_TO relationships
+    #     remove_child_rel_query = """
+    #     MATCH (c:CATEGORY {id: $category_id})-[r:IS_CHILD_OF]->()
+    #     DELETE r
+    #     """
+    #     remove_parent_rel_query = """
+    #     MATCH ()-[r:IS_PARENT_TO]->(c:CATEGORY {id: $category_id})
+    #     DELETE r
+    #     """
+    #     tx.run(
+    #         remove_child_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     tx.run(
+    #         remove_parent_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     # Create new IS_CHILD_OF and IS_PARENT_TO relationships
+    #     add_child_rel_query = """
+    #     MATCH (parent:CATEGORY {id: $parent_id}), (child:CATEGORY {id: $child_id})
+    #     CREATE (child)-[:IS_CHILD_OF]->(parent)
+    #     CREATE (parent)-[:IS_PARENT_TO]->(child)
+    #     """
+    #     tx.run(
+    #         add_child_rel_query,
+    #         parent_id=is_child_of,
+    #         child_id=category_id,
+    #     )
+    #     print(
+    #         f"IS_CHILD_OF relationship updated: {category_id} is now child of {is_child_of}"
+    #     )
+    # else:
+    #     # if is_child_of is not provided remove exising IS_CHILD_OF and IS_PARENT_TO relationships
+    #     remove_child_rel_query = """
+    #     MATCH (c:CATEGORY {id: $category_id})-[r:IS_CHILD_OF]->()
+    #     DELETE r
+    #     """
+    #     remove_parent_rel_query = """
+    #     MATCH ()-[r:IS_PARENT_TO]->(c:CATEGORY {id: $category_id})
+    #     DELETE r
+    #     """
+    #     tx.run(
+    #         remove_child_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     tx.run(
+    #         remove_parent_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     print(
+    #         f"IS_CHILD_OF relationship removed: {category_id} is no longer child of any category"
+    #     )
 
-    # Update IS_PARENT_OF relationship if provided
-    if is_parent_of:
-        # Remove existing IS_PARENT_TO and IS_CHILD_OF relationships
-        remove_parent_rel_query = """
-        MATCH (c:CATEGORY {id: $category_id})-[r:IS_PARENT_TO]->()
-        DELETE r
-        """
-        remove_child_rel_query = """
-        MATCH ()-[r:IS_CHILD_OF]->(c:CATEGORY {id: $category_id})
-        DELETE r
-        """
-        tx.run(
-            remove_parent_rel_query,
-            category_id=category_id,
-        )
-        tx.run(
-            remove_child_rel_query,
-            category_id=category_id,
-        )
-        # Create new IS_PARENT_TO and IS_CHILD_OF relationships
-        add_parent_rel_query = """
-        MATCH (parent:CATEGORY {id: $parent_id}), (child:CATEGORY {id: $child_id})
-        CREATE (parent)-[:IS_PARENT_TO]->(child)
-        CREATE (child)-[:IS_CHILD_OF]->(parent)
-        """
-        tx.run(
-            add_parent_rel_query,
-            parent_id=category_id,
-            child_id=is_parent_of,
-        )
-        print(
-            f"IS_PARENT_TO relationship updated: {category_id} is now parent of {is_parent_of}"
-        )
-    else:
-        # if is_parent_of is not provided remove exising IS_PARENT_TO and IS_CHILD_OF relationships
-        remove_parent_rel_query = """
-        MATCH (c:CATEGORY {id: $category_id})-[r:IS_PARENT_TO]->()
-        DELETE r
-        """
-        remove_child_rel_query = """
-        MATCH ()-[r:IS_CHILD_OF]->(c:CATEGORY {id: $category_id})
-        DELETE r
-        """
-        tx.run(
-            remove_parent_rel_query,
-            category_id=category_id,
-        )
-        tx.run(
-            remove_child_rel_query,
-            category_id=category_id,
-        )
-        print(
-            f"IS_PARENT_TO relationship removed: {category_id} is no longer parent of any category"
-        )
+    # # Update IS_PARENT_OF relationship if provided
+    # if is_parent_of:
+    #     # Remove existing IS_PARENT_TO and IS_CHILD_OF relationships
+    #     remove_parent_rel_query = """
+    #     MATCH (c:CATEGORY {id: $category_id})-[r:IS_PARENT_TO]->()
+    #     DELETE r
+    #     """
+    #     remove_child_rel_query = """
+    #     MATCH ()-[r:IS_CHILD_OF]->(c:CATEGORY {id: $category_id})
+    #     DELETE r
+    #     """
+    #     tx.run(
+    #         remove_parent_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     tx.run(
+    #         remove_child_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     # Create new IS_PARENT_TO and IS_CHILD_OF relationships
+    #     add_parent_rel_query = """
+    #     MATCH (parent:CATEGORY {id: $parent_id}), (child:CATEGORY {id: $child_id})
+    #     CREATE (parent)-[:IS_PARENT_TO]->(child)
+    #     CREATE (child)-[:IS_CHILD_OF]->(parent)
+    #     """
+    #     tx.run(
+    #         add_parent_rel_query,
+    #         parent_id=category_id,
+    #         child_id=is_parent_of,
+    #     )
+    #     print(
+    #         f"IS_PARENT_TO relationship updated: {category_id} is now parent of {is_parent_of}"
+    #     )
+    # else:
+    #     # if is_parent_of is not provided remove exising IS_PARENT_TO and IS_CHILD_OF relationships
+    #     remove_parent_rel_query = """
+    #     MATCH (c:CATEGORY {id: $category_id})-[r:IS_PARENT_TO]->()
+    #     DELETE r
+    #     """
+    #     remove_child_rel_query = """
+    #     MATCH ()-[r:IS_CHILD_OF]->(c:CATEGORY {id: $category_id})
+    #     DELETE r
+    #     """
+    #     tx.run(
+    #         remove_parent_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     tx.run(
+    #         remove_child_rel_query,
+    #         category_id=category_id,
+    #     )
+    #     print(
+    #         f"IS_PARENT_TO relationship removed: {category_id} is no longer parent of any category"
+    #     )
 
     # Fetch the updated category to return
     get_category_query = """
