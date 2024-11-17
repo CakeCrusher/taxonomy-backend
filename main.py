@@ -19,6 +19,7 @@ import os
 
 from db.category_handler import (
     CategoryModel,
+    Position,
     create_category,
     delete_category,
     update_category,
@@ -330,6 +331,7 @@ def update_category_items_endpoint(
 class CreateCategoryRequest(BaseModel):
     session_id: str
     category: Category
+    position: Position
     is_child_of: Optional[str] = None  # CATEGORY ID
     is_parent_of: Optional[str] = None  # CATEGORY ID
 
@@ -353,6 +355,7 @@ def create_category_endpoint(request: Request, category_req: CreateCategoryReque
             driver=driver,
             name=category_req.category.name,
             description=category_req.category.description,
+            position=category_req.position,
             session_id=category_req.session_id,
             is_child_of=category_req.is_child_of,
             is_parent_of=category_req.is_parent_of,
@@ -370,7 +373,8 @@ def create_category_endpoint(request: Request, category_req: CreateCategoryReque
 class UpdateCategoryRequest(BaseModel):
     session_id: str
     category_id: str
-    category: Category
+    category: Optional[Category] = None
+    position: Optional[Position] = None
     is_child_of: Optional[str] = None  # CATEGORY ID
     is_parent_of: Optional[str] = None  # CATEGORY ID
 
@@ -398,12 +402,16 @@ def update_category_endpoint(request: Request, update_req: UpdateCategoryRequest
     """
     try:
         driver = get_db(request)
+
         updated_category = update_category(
             driver=driver,
             session_id=update_req.session_id,
             category_id=update_req.category_id,
-            name=update_req.category.name,
-            description=update_req.category.description,
+            name=update_req.category.name if update_req.category else None,
+            description=(
+                update_req.category.description if update_req.category else None
+            ),
+            position=update_req.position,
             is_child_of=update_req.is_child_of,
             is_parent_of=update_req.is_parent_of,
         )

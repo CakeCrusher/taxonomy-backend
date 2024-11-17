@@ -4,7 +4,7 @@ import json
 from neo4j import Driver
 from pydantic import BaseModel
 import uuid
-from db.category_handler import create_category
+from db.category_handler import Position, create_category
 
 
 class SessionModel(BaseModel):
@@ -23,6 +23,7 @@ def create_session(driver: Driver) -> SessionModel:
         driver,
         name="Root Category",
         description="This is the root category",
+        position=Position(x=0, y=0),
         session_id=session_id,
     )
 
@@ -87,7 +88,10 @@ def _get_session_data_tx(tx, session_id: str):
             "description": category_node["description"],
             "children": [],
             "items": [],
-            "position": {"x": 0, "y": 0},
+            "position": {
+                "x": category_node["x"],
+                "y": category_node["y"],
+            },
         }
         categories[category_id] = category
 

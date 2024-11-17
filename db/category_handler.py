@@ -2,8 +2,14 @@
 
 from neo4j import Driver
 from typing import Optional
+from pydantic import BaseModel
 from taxonomy_synthesis.models import Category as TSCategory
 import uuid
+
+
+class Position(BaseModel):
+    x: int
+    y: int
 
 
 class CategoryModel(TSCategory):
@@ -14,6 +20,7 @@ def create_category(
     driver: Driver,
     name: str,
     description: str,
+    position: Position,
     session_id: str,
     is_child_of: Optional[str] = None,
     is_parent_of: Optional[str] = None,
@@ -25,6 +32,7 @@ def create_category(
             category_id,
             name,
             description,
+            position,
             session_id,
             is_child_of,
             is_parent_of,
@@ -37,6 +45,7 @@ def _create_category_tx(
     category_id: str,
     name: str,
     description: str,
+    position: Position,
     session_id: str,
     is_child_of: Optional[str],
     is_parent_of: Optional[str],
@@ -45,12 +54,14 @@ def _create_category_tx(
     tx.run(
         """
         MATCH (s:SESSION {id: $session_id})
-        CREATE (c:CATEGORY {id: $id, name: $name, description: $description})
+        CREATE (c:CATEGORY {id: $id, name: $name, description: $description, x: $x, y: $y})
         CREATE (s)-[:HAS]->(c)
         """,
         id=category_id,
         name=name,
         description=description,
+        x=position.x,
+        y=position.y,
         session_id=session_id,
     )
 
@@ -101,6 +112,7 @@ def update_category(
     category_id: str,
     name: Optional[str] = None,
     description: Optional[str] = None,
+    position: Optional[Position] = None,
     is_child_of: Optional[str] = None,
     is_parent_of: Optional[str] = None,
 ) -> CategoryModel:
@@ -113,6 +125,7 @@ def update_category(
         category_id (str): ID of the category to update.
         name (Optional[str]): New name for the category.
         description (Optional[str]): New description for the category.
+        position (Optional[Position]): New position for the category.
         is_child_of (Optional[str]): ID of the new parent category.
         is_parent_of (Optional[str]): ID of the new child category.
 
@@ -120,12 +133,14 @@ def update_category(
         CategoryModel: The updated category.
     """
     with driver.session() as session:
+        print("category position", position)
         updated_category = session.execute_write(
             _update_category_tx,
             session_id,
             category_id,
             name,
             description,
+            position,
             is_child_of,
             is_parent_of,
         )
@@ -138,6 +153,7 @@ def _update_category_tx(
     category_id: str,
     name: Optional[str],
     description: Optional[str],
+    position: Optional[Position],
     is_child_of: Optional[str],
     is_parent_of: Optional[str],
 ) -> CategoryModel:
@@ -176,12 +192,15 @@ def _update_category_tx(
         )
 
     # Update the category's properties if provided
-    if name or description:
+    if name or description or position:
         update_fields = {}
         if name:
             update_fields["name"] = name
         if description:
             update_fields["description"] = description
+        if position:
+            update_fields["x"] = position.x
+            update_fields["y"] = position.y
 
         # Dynamically build the SET clause based on provided fields
         set_clauses = ", ".join([f"c.{key} = ${key}" for key in update_fields.keys()])
