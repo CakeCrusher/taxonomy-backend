@@ -477,9 +477,11 @@ def create_tree_node(
 
 @app.post("/generate_classes", response_model=GenerateClassesResponse)
 def generate_classes(request: GenerateClassesRequest):
-    env_key = os.getenv("OPENAI_API_KEY")
-    if env_key is not None:
-        request.api_key = env_key
+    # env_key = os.getenv("OPENAI_API_KEY")
+    # if env_key is not None:
+    #     request.api_key = env_key
+    if not request.api_key:
+        raise HTTPException(status_code=400, detail="API key is required.")
 
     try:
         if request.num_categories == 0:
@@ -512,9 +514,12 @@ def generate_classes(request: GenerateClassesRequest):
 
 @app.post("/classify_items", response_model=ClassifyItemsResponse)
 def classify_items(request: ClassifyItemsRequest):
-    env_key = os.getenv("OPENAI_API_KEY")
-    if env_key is not None:
-        request.api_key = env_key
+    # env_key = os.getenv("OPENAI_API_KEY")
+    # if env_key is not None:
+    #     request.api_key = env_key
+
+    if not request.api_key:
+        raise HTTPException(status_code=400, detail="API key is required.")
 
     try:
         # Initialize OpenAI client
